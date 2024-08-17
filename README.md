@@ -21,6 +21,10 @@ This is a minimalistic, web-based implementation of the popular Wordle game. The
 4. **Win or Lose**: If you guess the word correctly, you'll see a congratulations message. If you exhaust your six attempts without guessing correctly, the correct word will be revealed.
 5. **Restart the game**: Click the "Restart Game" button to play again.
 
+## Working Example
+
+![Api-Worlde-Game](/api-wordle-example.gif)
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
