@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API-Driven Wordle Game</title>
+  <style>
+    body {
+      background-color: #fafafa;
+      font-family: 'Helvetica Neue', sans-serif;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .game-container {
+      text-align: center;
+      max-width: 320px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.5em;
+      margin-bottom: 20px;
+    }
+
+    #game-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .tile {
+      width: 100%;
+      padding-top: 100%;
+      position: relative;
+      background-color: #eee;
+      border-radius: 8px;
+      font-size: 1.5em;
+      font-weight: bold;
+      line-height: 1;
+      text-align: center;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .tile::after {
+      content: attr(data-letter);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .correct {
+      background-color: #6aaa64;
+      color: #fff;
+    }
+
+    .present {
+      background-color: #c9b458;
+      color: #fff;
+    }
+
+    .absent {
+      background-color: #787c7e;
+      color: #fff;
+    }
+
+    #message {
+      margin-top: 20px;
+      font-size: 1em;
+    }
+
+    #restart-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1em;
+      border: none;
+      background-color: #333;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #restart-btn:hover {
+      background-color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>API Wordle</h1>
+    <div id="game-grid">
+      <!-- Game grid will be generated here -->
+    </div>
+    <div id="message"></div>
+    <button id="restart-btn">Restart Game</button>
+  </div>
+
+  <script>
+    // Select DOM elements
+    const gameGrid = document.getElementById('game-grid');
+    const messageDiv = document.getElementById('message');
+    const restartBtn = document.getElementById('restart-btn');
+
+    let targetWord = '';
+    let currentAttempt = '';
+    let attempts = [];
+    const maxAttempts = 6;
+
+    // Obtaining data from random word api
+    async function fetchWord() {
+      try {
+        const response = await fetch('https://random-word-api.herokuapp.com/word?length=5');
+        const data = await response.json();
+        targetWord = data[0].toUpperCase();
+        console.log(`Target Word: ${targetWord}`); // Debugging
+      } catch (error) {
+        console.error('Error fetching word:', error);
+      }
+    }
+
+    async function initGame() {
+      await fetchWord();
+      createGrid();
+      messageDiv.textContent = '';
+      attempts = [];
+      currentAttempt = '';
+    }
+
+     // Create the grid
+    function createGrid() {
+      gameGrid.innerHTML = '';
+      for (let i = 0; i < maxAttempts * 5; i++) {
+        const tile = document.createElement('div');
+        tile.classList.add('tile');
+        tile.setAttribute('data-letter', '');
+        gameGrid.appendChild(tile);
+      }
+    }
+
+    // Handle keyboard input
+    document.addEventListener('keydown', (e) => {
+      if (messageDiv.textContent.includes('Congratulations') || messageDiv.textContent.includes('Game Over')) {
+        return;
+      }
+
+      const key = e.key.toUpperCase();
+
+      if (key === 'BACKSPACE' && currentAttempt.length > 0) {
+        currentAttempt = currentAttempt.slice(0, -1);
+        updateGrid();
+      } else if (/^[A-Z]$/.test(key) && currentAttempt.length < 5) {
+        currentAttempt += key;
+        updateGrid();
+      } else if (key === 'ENTER' && currentAttempt.length === 5) {
+        submitAttempt();
+      }
+    });
+
+    function updateGrid() {
+      const rowIndex = attempts.length;
+      for (let i = 0; i < 5; i++) {
+        const tileIndex = rowIndex * 5 + i;
+        const tile = gameGrid.children[tileIndex];
+        tile.setAttribute('data-letter', currentAttempt[i] || '');
+      }
+    }
+
+    function submitAttempt() {
+      const rowIndex = attempts.length;
+      const evaluation = evaluateAttempt(currentAttempt);
+      for (let i = 0; i < 5; i++) {
+        const tileIndex = rowIndex * 5 + i;
+        const tile = gameGrid.children[tileIndex];
+        tile.classList.add(evaluation[i]);
+      }
+
+      attempts.push(currentAttempt);
+      if (currentAttempt === targetWord) {
+        messageDiv.textContent = 'Congratulations! You guessed the word!';
+      } else if (attempts.length === maxAttempts) {
+        messageDiv.textContent = `Game Over! The word was ${targetWord}`;
+      }
+
+      currentAttempt = '';
+    }
+
+    function evaluateAttempt(attempt) {
+      const result = [];
+      for (let i = 0; i < 5; i++) {
+        if (attempt[i] === targetWord[i]) {
+          result.push('correct');
+        } else if (targetWord.includes(attempt[i])) {
+          result.push('present');
+        } else {
+          result.push('absent');
+        }
+      }
+      return result;
+    }
+
+    restartBtn.addEventListener('click', initGame);
+
+    window.onload = initGame;
+  </script>
+</body>
+</html>
